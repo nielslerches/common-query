@@ -12,7 +12,7 @@ The above query is actually the following:
 
 ```python
 Call(
-  arguments=('John', {}),
+  arguments=(('John',), {}),
   parent=GetAttr(
     arguments='startswith',
     parent=GetItem(
