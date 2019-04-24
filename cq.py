@@ -263,23 +263,31 @@ class LambdaCompiler:
     def compile(self, node):
         if isinstance(node, A):
             if isinstance(node, GetAttr):
-                if node.parent:
-                    return lambda item: getattr(self.compile(node.parent)(item), node.arguments)
-                return lambda item: getattr(item, node.arguments)
+                return lambda item: getattr(
+                    self.compile(node.parent)(item),
+                    node.arguments if not isinstance(node.arguments, LazyObject) else self.compile(node.arguments)(item)
+                )
 
             elif isinstance(node, Call):
                 args, kwargs = node.arguments
-                if node.parent:
-                    return lambda item: self.compile(node.parent)(item)(*args, **kwargs)
-                return lambda item: item(*args, **kwargs)
+                return lambda item: self.compile(node.parent)(item)(
+                    *[(arg if not isinstance(arg, LazyObject) else self.compile(arg)(item)) for arg in args],
+                    **{
+                        kw: (arg if not isinstance(arg, LazyObject) else self.compile(arg)(item))
+                        for kw, arg
+                        in kwargs.items()
+                    }
+                )
 
             elif isinstance(node, GetItem):
-                if node.parent:
-                    return lambda item: self.compile(node.parent)(item)[node.arguments]
+                return lambda item: self.compile(node.parent)(item)[
+                    node.arguments if not isinstance(node.arguments, LazyObject) else self.compile(node.arguments)(item)
+                ]
 
-                return lambda item: item[node.arguments]
-
-            return lambda item: self.get_value(item, node.arguments)
+            return lambda item: self.get_value(
+                item,
+                node.arguments if not isinstance(node.arguments, LazyObject) else self.compile(node.arguments)(item)
+            )
 
         elif isinstance(node, BinaryOperation):
             return lambda item: reduce(
