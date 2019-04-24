@@ -37,6 +37,10 @@ program = compiler.compile(A('x') > 10)
 print(program({'x': 11})) # True
 ```
 
+A compiler in this case is just an object that transforms a tree. The `LambdaCompiler` that comes with this library simply transforms the tree into a `lambda` function. This function takes in a context object, which the compiled query is executed on.
+
+An obvious idea would be to implement a compiler/transpiler that transform a tree into a tree of SQLAlchemy filters, or Django query objects.
+
 # Example: creating a MemoryRepository
 
 ```python
