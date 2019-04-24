@@ -39,3 +39,51 @@ print(program({'x': 11})) # True
 
 # Example: creating a MemoryRepository
 
+```python
+class MemoryRepository:
+    __slots__ = ('_entities', '_compiler')
+
+    def __init__(self, _entities=None, _compiler=None):
+        self._entities = _entities or []
+        self._compiler = _compiler or LambdaCompiler()
+
+    def filter(self, query):
+        callback = self._compiler.compile(query)
+        return MemoryRepository(
+            [
+                entity
+                for entity
+                in self._entities
+                if callback(entity)
+            ],
+            _compiler=self._compiler,
+        )
+
+    def order_by(self, *fields):
+        callbacks = [self._compiler.compile(field) for field in fields]
+
+        def sorting_key(entity):
+            return tuple(callback(entity) for callback in callbacks)
+
+        return MemoryRepository(
+            list(
+                sorted(
+                    self._entities,
+                    key=sorting_key
+                )
+            ),
+            _compiler=self._compiler
+        )
+
+    def dump(self):
+        return self._entities
+
+    def __repr__(self):
+        return '<MemoryRepository [{}]>'.format(
+            ', '.join(
+                repr(entity)
+                for entity
+                in self._entities[0:3]
+            ) + (', ...' if len(self._entities) > 3 else '')
+        )
+```
