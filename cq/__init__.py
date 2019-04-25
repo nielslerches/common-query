@@ -1,7 +1,11 @@
 import operator
 
 from functools import reduce
-from itertools import groupby
+from itertools import groupby, tee, islice
+
+
+def nwise(xs, n=2):
+    return zip(*(islice(xs, idx, None) for idx, xs in enumerate(tee(xs, n))))
 
 
 class LazyObject:
@@ -69,7 +73,7 @@ class ArithmeticOperable(LazyObject):
         return Neg(self)
 
 
-class UnaryOperation(LazyObject):
+class UnaryOperation(Comparable, ArithmeticOperable):
     def __init__(self, operand):
         self.operand = operand
 
@@ -130,47 +134,55 @@ class BinaryOperation(Comparable, ArithmeticOperable):
         return ' {} '.format(self.op).join(repr(operand) for operand in self.operands)
 
 
-class Eq(BinaryOperation):
+class BooleanOperation:
+    pass
+
+
+class ArithmeticOperation:
+    pass
+
+
+class Eq(BooleanOperation, BinaryOperation):
     op = '=='
     reducer = operator.eq
 
 
-class Ne(BinaryOperation):
+class Ne(BooleanOperation, BinaryOperation):
     op = '!='
     reducer = operator.ne
 
 
-class Gt(BinaryOperation):
+class Gt(BooleanOperation, BinaryOperation):
     op = '>'
     reducer = operator.gt
 
 
-class Ge(BinaryOperation):
+class Ge(BooleanOperation, BinaryOperation):
     op = '>='
     reducer = operator.ge
 
 
-class Lt(BinaryOperation):
+class Lt(BooleanOperation, BinaryOperation):
     op = '<'
     reducer = operator.lt
 
 
-class Le(BinaryOperation):
+class Le(BooleanOperation, BinaryOperation):
     op = '>='
     reducer = operator.le
 
 
-class And(BinaryOperation):
+class And(BooleanOperation, BinaryOperation):
     op = '&'
     reducer = operator.and_
 
 
-class Or(BinaryOperation):
+class Or(BooleanOperation, BinaryOperation):
     op = '|'
     reducer = operator.or_
 
 
-class Not(UnaryOperation):
+class Not(BooleanOperation, UnaryOperation):
     op = '~'
     reducer = operator.invert
 
@@ -178,34 +190,34 @@ class Not(UnaryOperation):
         return self.operand
 
 
-class Add(BinaryOperation):
+class Add(ArithmeticOperation, BinaryOperation):
     op = '+'
     reducer = operator.add
     precalc = True
 
 
-class Sub(BinaryOperation):
+class Sub(ArithmeticOperation, BinaryOperation):
     op = '-'
     reducer = operator.sub
 
 
-class Mul(BinaryOperation):
+class Mul(ArithmeticOperation, BinaryOperation):
     op = '*'
     reducer = operator.mul
     precalc = True
 
 
-class TrueDiv(BinaryOperation):
+class TrueDiv(ArithmeticOperation, BinaryOperation):
     op = '/'
     reducer = operator.truediv
 
 
-class FloorDiv(BinaryOperation):
+class FloorDiv(ArithmeticOperation, BinaryOperation):
     op = '//'
     reducer = operator.floordiv
 
 
-class Neg(UnaryOperation):
+class Neg(ArithmeticOperation, UnaryOperation):
     op = '-'
     reducer = operator.neg
 
@@ -290,6 +302,16 @@ class LambdaCompiler:
             )
 
         elif isinstance(node, BinaryOperation):
+            if isinstance(node, BooleanOperation):
+                return lambda item: all(
+                    node.reducer(
+                        (self.compile(a)(item) if isinstance(a, LazyObject) else a),
+                        (self.compile(b)(item) if isinstance(b, LazyObject) else b)
+                    )
+                    for a, b
+                    in nwise(node.operands)
+                )
+
             return lambda item: reduce(
                 node.reducer,
                 [
@@ -300,10 +322,53 @@ class LambdaCompiler:
             )
 
         elif isinstance(node, UnaryOperation):
-            if isinstance(node.operand, LazyObject):
-                return lambda item: node.reducer(hash(self.compile(node.operand)(item)))
-
-            return lambda _: node.reducer(hash(node.operand))
+            return lambda item: node.reducer(self.compile(node.operand)(item)) if isinstance(node.operand, LazyObject) else node.reducer(node.operand)
 
         else:
             return node
+
+
+class MemoryRepository:
+    __slots__ = ('_entities', '_compiler')
+
+    def __init__(self, _entities=None, _compiler=None):
+        self._entities = _entities or []
+        self._compiler = _compiler or LambdaCompiler()
+
+    def filter(self, query):
+        callback = self._compiler.compile(query)
+        return MemoryRepository(
+            [
+                entity
+                for entity
+                in self._entities
+                if callback(entity)
+            ],
+            _compiler=self._compiler,
+        )
+
+    def order_by(self, *fields):
+        entities = self._entities.copy()
+
+        for field in reversed(fields):
+            if isinstance(field, Neg):
+                entities.sort(key=lambda entity: self._compiler.compile(field.operand)(entity), reverse=True)
+            else:
+                entities.sort(key=lambda entity: self._compiler.compile(field)(entity))
+
+        return MemoryRepository(
+            entities,
+            _compiler=self._compiler
+        )
+
+    def dump(self):
+        return self._entities
+
+    def __repr__(self):
+        return '<MemoryRepository [{}]>'.format(
+            ', '.join(
+                repr(entity)
+                for entity
+                in self._entities[0:3]
+            ) + (', ...' if len(self._entities) > 3 else '')
+        )
