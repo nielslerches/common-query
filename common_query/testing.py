@@ -9,6 +9,7 @@ from common_query import (
     GetItem,
     LazyObject,
     UnaryOperation,
+    L
 )
 from common_query.utils import nwise
 
@@ -42,6 +43,9 @@ class LambdaCompiler:
                 return lambda item: self.compile(node.parent)(item)[
                     node.arguments if not isinstance(node.arguments, LazyObject) else self.compile(node.arguments)(item)
                 ]
+
+            elif isinstance(node, L):
+                return lambda item: node.value(item) if not isinstance(node.value, LazyObject) and callable(node.value) else node.value
 
             return lambda item: self.get_value(
                 item,
