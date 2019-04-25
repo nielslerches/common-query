@@ -1,6 +1,6 @@
 import unittest
 
-from common_query import A
+from common_query import A, L
 from common_query.testing import LambdaCompiler
 
 
@@ -26,6 +26,10 @@ class LambdaCompilerTestCase(unittest.TestCase):
     def test_GetItem(self):
         self.assertEqual(self.compile(A('users')[0])({'users': ['Jane']}), 'Jane')
         self.assertEqual(self.compile(A('users')[A('index')])({'users': ['Jane', 'John'], 'index': 1}), 'John')
+
+    def test_L(self):
+        self.assertEqual(self.compile(L('John'))({}), 'John')
+        self.assertEqual(self.compile(L(A('users')))({'users': 1}), A('users'))
 
     def test_BooleanOperation(self):
         self.assertEqual(self.compile(A('x') < 10 < A('y'))({'x': 5, 'y': 15}), True)

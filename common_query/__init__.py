@@ -263,3 +263,13 @@ class Call(A):
 class GetItem(A):
     def __repr__(self):
         return '{!r}[{}]'.format(self.parent, self.arguments)
+
+
+class L(A):
+    __slots__ = ('value',)
+
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
