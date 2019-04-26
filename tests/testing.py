@@ -32,7 +32,7 @@ class LambdaCompilerTestCase(unittest.TestCase):
         self.assertEqual(self.compile(L(A('users')))({'users': 1}), A('users'))
 
     def test_BooleanOperation(self):
-        self.assertEqual(self.compile(A('x') < 10 < A('y'))({'x': 5, 'y': 15}), True)
+        self.assertEqual(self.compile((A('x') < 10) < A('y'))({'x': 5, 'y': 15}), True)
 
     def test_ArithmeticOperation(self):
         self.assertEqual(self.compile(A('x') + 5)({'x': 5}), 10)
