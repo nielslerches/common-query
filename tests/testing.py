@@ -1,7 +1,7 @@
 import unittest
 
 from common_query import A, L
-from common_query.testing import LambdaCompiler
+from common_query.testing import LambdaCompiler, MemoryRepository
 
 
 class LambdaCompilerTestCase(unittest.TestCase):
@@ -40,3 +40,42 @@ class LambdaCompilerTestCase(unittest.TestCase):
     def test_UnaryOperation(self):
         self.assertEqual(self.compile(~A('x'))({'x': False}), True)
         self.assertEqual(self.compile(-A('x'))({'x': 10}), -10)
+
+
+class MemoryRepositoryTestCase(unittest.TestCase):
+    def setUp(self):
+        self.repository = MemoryRepository([
+            {'brand': 'PUMA', 'group': 4},
+            {'brand': 'Nike', 'group': 4},
+            {'brand': 'adidas', 'group': 3},
+            {'brand': 'Uhlsport', 'group': 3},
+            {'brand': 'New Balance', 'group': 3},
+        ])
+
+    def test_filter(self):
+        self.assertListEqual(
+            ['Nike', 'New Balance'],
+            [
+                d['brand']
+                for d
+                in self.repository.filter(A('brand').lower().startswith('n'))
+            ]
+        )
+
+    def test_order_by(self):
+        self.assertListEqual(
+            ['adidas', 'New Balance', 'Nike', 'PUMA', 'Uhlsport'],
+            [
+                d['brand']
+                for d
+                in self.repository.order_by(A('brand').lower())
+            ]
+        )
+        self.assertListEqual(
+            ['Nike', 'PUMA', 'adidas', 'New Balance', 'Uhlsport'],
+            [
+                d['brand']
+                for d
+                in self.repository.order_by(-A('group'), A('brand').lower())
+            ]
+        )

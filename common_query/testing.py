@@ -7,9 +7,10 @@ from common_query import (
     Call,
     GetAttr,
     GetItem,
+    L,
     LazyObject,
+    Neg,
     UnaryOperation,
-    L
 )
 from common_query.utils import nwise
 
@@ -112,8 +113,8 @@ class MemoryRepository:
             _compiler=self._compiler
         )
 
-    def dump(self):
-        return self._entities
+    def __iter__(self):
+        return iter(self._entities)
 
     def __repr__(self):
         return '<MemoryRepository [{}]>'.format(
