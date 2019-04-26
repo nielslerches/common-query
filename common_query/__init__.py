@@ -65,6 +65,18 @@ class ArithmeticOperable(LazyObject):
     def __rfloordiv__(self, other):
         return FloorDiv(other, self)
 
+    def __pow__(self, other):
+        return Pow(self, other)
+
+    def __rpow__(self, other):
+        return Pow(other, self)
+
+    def __mod__(self, other):
+        return Mod(self, other)
+
+    def __rmod__(self, other):
+        return Mod(other, self)
+
     def __neg__(self):
         return Neg(self)
 
@@ -77,7 +89,24 @@ class UnaryOperation(Comparable):
         return '{}({!r})'.format(self.op, self.operand)
 
 
-class BinaryOperation(Comparable, ArithmeticOperable):
+class Accessible(Comparable, ArithmeticOperable):
+    def __getattr__(self, name):
+        if name in dir(type(self)):
+            return super(A, self).__getattr__(name)
+
+        return GetAttr(name, self)
+
+    def __call__(self, *args, **kwargs):
+        return Call((args, kwargs), self)
+
+    def __getitem__(self, key):
+        return GetItem(key, self)
+
+    def __invert__(self):
+        return Not(self)
+
+
+class BinaryOperation(Accessible):
     __slots__ = ('operands',)
 
     op = '?'
@@ -97,18 +126,6 @@ class BinaryOperation(Comparable, ArithmeticOperable):
             operands = [reduce(self.reducer, group) for group in groups]
 
         self.operands = operands
-
-    def __getattr__(self, name):
-        if name in dir(type(self)):
-            return super(A, self).__getattr__(name)
-
-        return GetAttr(name, self)
-
-    def __call__(self, *args, **kwargs):
-        return Call((args, kwargs), self)
-
-    def __getitem__(self, key):
-        return GetItem(key, self)
 
     def __invert__(self):
         if type(self) == Eq:
@@ -213,6 +230,16 @@ class FloorDiv(ArithmeticOperation, BinaryOperation):
     reducer = operator.floordiv
 
 
+class Pow(ArithmeticOperation, BinaryOperation):
+    op = '**'
+    reducer = operator.pow
+
+
+class Mod(ArithmeticOperation, BinaryOperation):
+    op = '%'
+    reducer = operator.mod
+
+
 class Neg(ArithmeticOperation, ArithmeticOperable, UnaryOperation):
     op = '-'
     reducer = operator.neg
@@ -221,27 +248,12 @@ class Neg(ArithmeticOperation, ArithmeticOperable, UnaryOperation):
         return self.operand
 
 
-class A(Comparable, ArithmeticOperable):
+class A(Accessible):
     __slots__ = ('arguments', 'parent')
 
     def __init__(self, arguments, parent=None):
         self.arguments = arguments
         self.parent = parent
-
-    def __getattr__(self, name):
-        if name in dir(type(self)):
-            return super(A, self).__getattr__(name)
-
-        return GetAttr(name, self)
-
-    def __call__(self, *args, **kwargs):
-        return Call((args, kwargs), self)
-
-    def __getitem__(self, key):
-        return GetItem(key, self)
-
-    def __invert__(self):
-        return Not(self)
 
     def __repr__(self):
         return 'A({!r})'.format(self.arguments)
@@ -265,11 +277,11 @@ class GetItem(A):
         return '{!r}[{}]'.format(self.parent, self.arguments)
 
 
-class L(A):
+class L(Accessible):
     __slots__ = ('value',)
 
     def __init__(self, value):
         self.value = value
 
     def __repr__(self):
-        return repr(self.value)
+        return 'L({!r})'.format(self.value)
