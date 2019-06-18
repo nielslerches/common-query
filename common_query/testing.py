@@ -81,46 +81,58 @@ class LambdaCompiler:
 
 
 class MemoryRepository:
-    __slots__ = ('_entities', '_compiler')
+    __slots__ = ('_get_entities', '_compiler', '_pipeline')
 
-    def __init__(self, _entities=None, _compiler=None):
-        self._entities = _entities or []
+    def __init__(self, _get_entities=None, _compiler=None, _pipeline=None):
+        self._get_entities = _get_entities or (lambda: [])
         self._compiler = _compiler or LambdaCompiler()
+        self._pipeline = _pipeline or []
+
+    def all(self):
+        return self
 
     def filter(self, query):
         callback = self._compiler.compile(query)
-        return MemoryRepository(
-            [
+        def _filter(entities):
+            return [
                 entity
                 for entity
-                in self._entities
+                in entities
                 if callback(entity)
-            ],
+            ]
+        return MemoryRepository(
+            _get_entities=self._get_entities,
             _compiler=self._compiler,
+            _pipeline=self._pipeline + [_filter]
         )
 
     def order_by(self, *fields):
-        entities = self._entities.copy()
-
-        for field in reversed(fields):
-            if isinstance(field, Neg):
-                entities.sort(key=lambda entity: self._compiler.compile(field.operand)(entity), reverse=True)
-            else:
-                entities.sort(key=lambda entity: self._compiler.compile(field)(entity))
-
+        def _order_by(entities):
+            entities = entities.copy()
+            for field in reversed(fields):
+                if isinstance(field, Neg):
+                    entities.sort(key=lambda entity: self._compiler.compile(field.operand)(entity), reverse=True)
+                else:
+                    entities.sort(key=lambda entity: self._compiler.compile(field)(entity))
+            return entities
         return MemoryRepository(
-            entities,
-            _compiler=self._compiler
+            _get_entities=self._get_entities,
+            _compiler=self._compiler,
+            _pipeline=self._pipeline + [_order_by]
         )
 
     def __iter__(self):
-        return iter(self._entities)
+        entities = self._get_entities()
+        for pipe in self._pipeline:
+            entities = pipe(entities)
+        return iter(entities)
 
     def __repr__(self):
+        entities = list(self)
         return '<MemoryRepository [{}]>'.format(
             ', '.join(
                 repr(entity)
                 for entity
-                in self._entities[0:3]
-            ) + (', ...' if len(self._entities) > 3 else '')
+                in entities[0:3]
+            ) + (', ...' if len(entities) > 3 else '')
         )

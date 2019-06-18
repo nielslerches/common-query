@@ -44,13 +44,15 @@ class LambdaCompilerTestCase(unittest.TestCase):
 
 class MemoryRepositoryTestCase(unittest.TestCase):
     def setUp(self):
-        self.repository = MemoryRepository([
-            {'brand': 'PUMA', 'group': 4},
-            {'brand': 'Nike', 'group': 4},
-            {'brand': 'adidas', 'group': 3},
-            {'brand': 'Uhlsport', 'group': 3},
-            {'brand': 'New Balance', 'group': 3},
-        ])
+        self.repository = MemoryRepository(
+            _get_entities=lambda: [
+                {'brand': 'PUMA', 'group': 4},
+                {'brand': 'Nike', 'group': 4},
+                {'brand': 'adidas', 'group': 3},
+                {'brand': 'Uhlsport', 'group': 3},
+                {'brand': 'New Balance', 'group': 3},
+            ],
+        )
 
     def test_filter(self):
         self.assertListEqual(
