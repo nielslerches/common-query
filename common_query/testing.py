@@ -83,6 +83,12 @@ class LambdaCompiler:
 class MemoryRepository:
     __slots__ = ('_get_entities', '_compiler', '_pipeline')
 
+    class MultipleObjectsReturned(Exception):
+        message = 'Multiple objects returned'
+
+    class ObjectDoesNotExist(Exception):
+        message = 'Object does not exist'
+
     def __init__(self, _get_entities=None, _compiler=None, _pipeline=None):
         self._get_entities = _get_entities or (lambda: [])
         self._compiler = _compiler or LambdaCompiler()
@@ -120,6 +126,64 @@ class MemoryRepository:
             _compiler=self._compiler,
             _pipeline=self._pipeline + [_order_by]
         )
+
+    def values(self, *args):
+        def _values(entities):
+            return [
+                {
+                    arg: self._compiler.get_value(entity, arg)
+                    for arg
+                    in args
+                }
+                for entity
+                in entities
+            ]
+        return MemoryRepository(
+            _get_entities=self._get_entities,
+            _compiler=self._compiler,
+            _pipeline=self._pipeline + [_values],
+        )
+
+    def values_list(self, *args, **kwargs):
+        flat = kwargs.setdefault('flat', False)
+        if flat and len(args) > 1:
+            raise Exception('Can\'t return flat MemoryRepository when there are multiple fields specified.')
+        transform = (
+            (
+                lambda entity: tuple(
+                    self._compiler.get_value(entity, arg)
+                    for arg
+                    in args
+                )
+            ) if not flat else (lambda entity: entity[args[0]])
+        )
+        def _values_list(entities):
+            return [
+                transform(entity)
+                for entity
+                in entities
+            ]
+        return MemoryRepository(
+            _get_entities=self._get_entities,
+            _compiler=self._compiler,
+            _pipeline=self._pipeline + [_values_list],
+        )
+
+    def get(self, query):
+        entities = list(self.filter(query))
+        if len(entities) > 1:
+            raise self.MultipleObjectsReturned
+        elif not entities:
+            raise self.ObjectDoesNotExist
+        return entities[0]
+
+    def first(self):
+        entities = list(self)
+        return entities[0] if entities else None
+
+    def last(self):
+        entities = list(self)
+        return entities[-1] if entities else None
 
     def __iter__(self):
         entities = self._get_entities()
