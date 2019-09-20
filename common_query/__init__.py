@@ -89,15 +89,17 @@ class UnaryOperation(Comparable):
         return '{}({!r})'.format(self.op, self.operand)
 
 
-class Accessible(Comparable, ArithmeticOperable):
-    def __getattr__(self, name):
-        if name in dir(type(self)):
-            return super(A, self).__getattr__(name)
-
-        return GetAttr(name, self)
-
+class Callable(LazyObject):
     def __call__(self, *args, **kwargs):
         return Call((args, kwargs), self)
+
+
+class Accessible(Comparable, ArithmeticOperable, Callable):
+    def __getattr__(self, name):
+        if name in dir(type(self)):
+            return super(Accessible, self).__getattr__(name)
+
+        return GetAttr(name, self)
 
     def __getitem__(self, key):
         return GetItem(key, self)
@@ -123,7 +125,6 @@ class BinaryOperation(Accessible):
 
         if self.precalc and self.reducer:
             groups = [list(group) for _, group in groupby(operands, lambda obj: hash(type(obj)))]
-            print(('groups =', groups))
             operands = [reduce(self.reducer, group) for group in groups]
 
         self.operands = operands
@@ -301,7 +302,7 @@ class For(LazyObject):
         return s
 
 
-class Function(LazyObject):
+class Function(Callable):
     def __init__(self, variable_name, body):
         self.variable_name = variable_name
         self.body = body
@@ -312,10 +313,29 @@ class Function(LazyObject):
 
 
 class If(LazyObject):
-    def __init__(self, value, then):
+    def __init__(self, value, then, otherwise_then=None):
         self.value = value
         self.then = then
+        self.otherwise_then = otherwise_then
+
+    def otherwise(self, then):
+        return If(
+            self.value,
+            self.then,
+            otherwise_then=then,
+        )
 
     def __repr__(self):
         s = self.__class__.__name__ + '(' + repr(self.value) + ', ' + repr(self.then) + ')'
+        if self.otherwise_then is not None:
+            s += '.(' + repr(self.otherwise) + ')'
         return s
+
+
+class Assign(LazyObject):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + repr(self.name) + ', ' + repr(self.value) + ')'

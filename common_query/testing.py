@@ -14,19 +14,19 @@ from common_query import (
     For,
     Function,
     If,
+    Assign,
 )
 from common_query.utils import nwise
 
 
 def update(dict_a, dict_b):
-    dict_a = dict_a.copy()
     dict_a.update(dict_b)
     return dict_a
 
 
 def shadow(*dicts):
     result = reduce(
-        lambda dict_a, dict_b: update(dict_a, dict_b),
+        lambda dict_a, dict_b: update(dict_a.copy(), dict_b),
         dicts
     )
     return result
@@ -94,29 +94,16 @@ class LambdaCompiler:
             return lambda item: node.reducer(self.compile(node.operand)(item)) if isinstance(node.operand, LazyObject) else node.reducer(node.operand)
 
         elif isinstance(node, For):
-            def node_For(item):
-                if node.function is not None:
-                    function = self.compile(node.function)(item)
-                else:
-                    function = None
-
-                collection = self.compile(node.value)(item)
-                for obj in collection:
-                    if function is None:
-                        yield obj
-                    else:
-                        yield function(obj)
-
-            return node_For
+            return lambda item: ((self.compile(node.function)(item) or (lambda inner: inner))(obj) for obj in self.compile(node.value)(item))
 
         elif isinstance(node, Function):
-            def node_Function(item):
-                return lambda obj: self.compile(node.body)(shadow(item, {node.variable_name: obj}))
-
-            return node_Function
+            return lambda item: lambda obj: self.compile(node.body)(shadow(item, {node.variable_name: obj}))
 
         elif isinstance(node, If):
             return lambda item: self.compile(node.then)(item) if self.compile(node.value)(item) else None
+
+        elif isinstance(node, Assign):
+            return lambda item: update(item.copy(), {node.name: self.compile(node.value)(item)})
 
         else:
             return lambda item: node
