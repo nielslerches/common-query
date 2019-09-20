@@ -123,6 +123,7 @@ class BinaryOperation(Accessible):
 
         if self.precalc and self.reducer:
             groups = [list(group) for _, group in groupby(operands, lambda obj: hash(type(obj)))]
+            print(('groups =', groups))
             operands = [reduce(self.reducer, group) for group in groups]
 
         self.operands = operands
@@ -206,7 +207,6 @@ class Not(BooleanOperation, UnaryOperation):
 class Add(ArithmeticOperation, BinaryOperation):
     op = '+'
     reducer = operator.add
-    precalc = True
 
 
 class Sub(ArithmeticOperation, BinaryOperation):
@@ -217,7 +217,6 @@ class Sub(ArithmeticOperation, BinaryOperation):
 class Mul(ArithmeticOperation, BinaryOperation):
     op = '*'
     reducer = operator.mul
-    precalc = True
 
 
 class TrueDiv(ArithmeticOperation, BinaryOperation):
@@ -277,7 +276,7 @@ class GetItem(A):
         return '{!r}[{}]'.format(self.parent, self.arguments)
 
 
-class L(Accessible):
+class L(A):
     __slots__ = ('value',)
 
     def __init__(self, value):
@@ -285,3 +284,38 @@ class L(Accessible):
 
     def __repr__(self):
         return 'L({!r})'.format(self.value)
+
+
+class For(LazyObject):
+    def __init__(self, value, function=None):
+        self.value = value
+        self.function = function
+
+    def do(self, function):
+        return For(self.value, function=function)
+
+    def __repr__(self):
+        s = self.__class__.__name__ + '(' + repr(self.value) + ')'
+        if self.function is not None:
+            s += '.do(' + repr(self.function) + ')'
+        return s
+
+
+class Function(LazyObject):
+    def __init__(self, variable_name, body):
+        self.variable_name = variable_name
+        self.body = body
+
+    def __repr__(self):
+        s = self.__class__.__name__ + '(' + repr(self.variable_name) + ', ' + repr(self.body) + ')'
+        return s
+
+
+class If(LazyObject):
+    def __init__(self, value, then):
+        self.value = value
+        self.then = then
+
+    def __repr__(self):
+        s = self.__class__.__name__ + '(' + repr(self.value) + ', ' + repr(self.then) + ')'
+        return s
