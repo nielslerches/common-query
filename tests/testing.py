@@ -1,6 +1,6 @@
 import unittest
 
-from common_query import A, L
+from common_query import A, L, Function, For
 from common_query.testing import LambdaCompiler, MemoryRepository
 
 
@@ -40,6 +40,24 @@ class LambdaCompilerTestCase(unittest.TestCase):
     def test_UnaryOperation(self):
         self.assertEqual(self.compile(~A('x'))({'x': False}), True)
         self.assertEqual(self.compile(-A('x'))({'x': 10}), -10)
+
+    def test_Function(self):
+        self.assertEqual(self.compile(Function('x', A('x') * 2))({})(3), 6)
+        self.assertEqual(self.compile(Function('x', A('x') * 2)(3))({}), 6)
+
+    def test_For(self):
+        self.assertListEqual(
+            list(
+                self.compile(For(L([1, 2, 3])))({})
+            ),
+            [1, 2, 3],
+        )
+        self.assertListEqual(
+            list(
+                self.compile(For(L([1, 2, 3])).do(Function('x', A('x') * 2)))({})
+            ),
+            [2, 4, 6],
+        )
 
 
 class MemoryRepositoryTestCase(unittest.TestCase):
