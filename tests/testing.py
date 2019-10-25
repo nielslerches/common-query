@@ -42,8 +42,18 @@ class LambdaCompilerTestCase(unittest.TestCase):
         self.assertEqual(self.compile(-A('x'))({'x': 10}), -10)
 
     def test_Function(self):
-        self.assertEqual(self.compile(Function('x', A('x') * 2))({})(3), 6)
-        self.assertEqual(self.compile(Function('x', A('x') * 2)(3))({}), 6)
+        self.assertEqual(
+            self.compile(
+                Function('x', A('x') * 2)
+            )({})(3),
+            6,
+        )
+        self.assertEqual(
+            self.compile(
+                Function('x', A('x') * 2)(3)
+            )({}),
+            6,
+        )
 
     def test_For(self):
         self.assertListEqual(
