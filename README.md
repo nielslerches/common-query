@@ -1,10 +1,11 @@
 # common-query
+
 A Python library for creating queries and compiling them to different targets.
 
 # Creating queries
 
 ```python
-query = A('users')[0]['name'].startswith('John')
+query = The('users')[0]['name'].startswith('John')
 ```
 
 Behind the scenes the library generates a tree-structure that represents the query. The nodes more or less maps to the Python magic methods.
@@ -19,7 +20,7 @@ Call(
       arguments='name',
       parent=GetItem(
         arguments=0,
-        parent=A(
+        parent=The(
           arguments='users',
           parent=None
         )
@@ -33,7 +34,7 @@ Call(
 
 ```python
 compiler = LambdaCompiler()
-program = compiler.compile(A('x') > 10)
+program = compiler.compile(The('x') > 10)
 print(program({'x': 11})) # True
 ```
 
@@ -45,7 +46,7 @@ This library has the concept of function creation and execution:
 
 ```python
 compiler = LambdaCompiler()
-function = Function('x', A('x') * 2)
+function = Function('x', The('x') * 2)
 program = compiler.compile(function)
 compiled_function = program({})
 print(compiled_function(10)) # 20
