@@ -7,7 +7,7 @@ from common_query import (
     Call,
     GetAttr,
     GetItem,
-    L,
+    Raw,
     LazyObject,
     Neg,
     UnaryOperation,
@@ -73,7 +73,7 @@ class LambdaCompiler:
                     else self.compile(node.arguments)(item)
                 ]
 
-            elif isinstance(node, L):
+            elif isinstance(node, Raw):
                 return lambda item: node.value
 
             return lambda item: self.get_value(

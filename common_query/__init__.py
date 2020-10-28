@@ -282,14 +282,14 @@ class GetItem(The):
         return "{!r}[{}]".format(self.parent, self.arguments)
 
 
-class L(The):
+class Raw(The):
     __slots__ = ("value",)
 
     def __init__(self, value):
         self.value = value
 
     def __repr__(self):
-        return "L({!r})".format(self.value)
+        return "Raw({!r})".format(self.value)
 
 
 class For(LazyObject):

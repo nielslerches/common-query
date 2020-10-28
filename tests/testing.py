@@ -1,6 +1,6 @@
 import unittest
 
-from common_query import The, L, Function, For
+from common_query import The, Raw, Function, For
 from common_query.testing import LambdaCompiler, MemoryRepository
 
 
@@ -8,7 +8,7 @@ class LambdaCompilerTestCase(unittest.TestCase):
     def setUp(self):
         self.compile = LambdaCompiler().compile
 
-    def test_A(self):
+    def test_The(self):
         self.assertEqual(self.compile(The("x"))({"x": 10}), 10)
         self.assertEqual(self.compile(The(The("x")))({"x": "y", "y": 10}), 10)
 
@@ -42,9 +42,9 @@ class LambdaCompilerTestCase(unittest.TestCase):
             "John",
         )
 
-    def test_L(self):
-        self.assertEqual(self.compile(L("John"))({}), "John")
-        self.assertEqual(self.compile(L(The("users")))({"users": 1}), The("users"))
+    def test_Raw(self):
+        self.assertEqual(self.compile(Raw("John"))({}), "John")
+        self.assertEqual(self.compile(Raw(The("users")))({"users": 1}), The("users"))
 
     def test_BooleanOperation(self):
         self.assertEqual(
@@ -68,10 +68,10 @@ class LambdaCompilerTestCase(unittest.TestCase):
 
     def test_For(self):
         self.assertListEqual(
-            list(self.compile(For(L([1, 2, 3])))({})), [1, 2, 3],
+            list(self.compile(For(Raw([1, 2, 3])))({})), [1, 2, 3],
         )
         self.assertListEqual(
-            list(self.compile(For(L([1, 2, 3])).do(Function("x", The("x") * 2)))({})),
+            list(self.compile(For(Raw([1, 2, 3])).do(Function("x", The("x") * 2)))({})),
             [2, 4, 6],
         )
 
