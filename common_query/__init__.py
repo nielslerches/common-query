@@ -86,7 +86,7 @@ class UnaryOperation(Comparable):
         self.operand = operand
 
     def __repr__(self):
-        return '{}({!r})'.format(self.op, self.operand)
+        return "{}({!r})".format(self.op, self.operand)
 
 
 class Callable(LazyObject):
@@ -109,9 +109,9 @@ class Accessible(Comparable, ArithmeticOperable, Callable):
 
 
 class BinaryOperation(Accessible):
-    __slots__ = ('operands',)
+    __slots__ = ("operands",)
 
-    op = '?'
+    op = "?"
     reducer = None
     precalc = False
 
@@ -124,7 +124,10 @@ class BinaryOperation(Accessible):
                 operands.append(operand)
 
         if self.precalc and self.reducer:
-            groups = [list(group) for _, group in groupby(operands, lambda obj: hash(type(obj)))]
+            groups = [
+                list(group)
+                for _, group in groupby(operands, lambda obj: hash(type(obj)))
+            ]
             operands = [reduce(self.reducer, group) for group in groups]
 
         self.operands = operands
@@ -146,7 +149,7 @@ class BinaryOperation(Accessible):
         return Not(self)
 
     def __repr__(self):
-        return ' {} '.format(self.op).join(repr(operand) for operand in self.operands)
+        return " {} ".format(self.op).join(repr(operand) for operand in self.operands)
 
 
 class BooleanOperation:
@@ -158,47 +161,47 @@ class ArithmeticOperation:
 
 
 class Eq(BooleanOperation, BinaryOperation):
-    op = '=='
+    op = "=="
     reducer = operator.eq
 
 
 class Ne(BooleanOperation, BinaryOperation):
-    op = '!='
+    op = "!="
     reducer = operator.ne
 
 
 class Gt(BooleanOperation, BinaryOperation):
-    op = '>'
+    op = ">"
     reducer = operator.gt
 
 
 class Ge(BooleanOperation, BinaryOperation):
-    op = '>='
+    op = ">="
     reducer = operator.ge
 
 
 class Lt(BooleanOperation, BinaryOperation):
-    op = '<'
+    op = "<"
     reducer = operator.lt
 
 
 class Le(BooleanOperation, BinaryOperation):
-    op = '>='
+    op = ">="
     reducer = operator.le
 
 
 class And(BooleanOperation, BinaryOperation):
-    op = '&'
+    op = "&"
     reducer = operator.and_
 
 
 class Or(BooleanOperation, BinaryOperation):
-    op = '|'
+    op = "|"
     reducer = operator.or_
 
 
 class Not(BooleanOperation, UnaryOperation):
-    op = '~'
+    op = "~"
     reducer = operator.not_
 
     def __invert__(self):
@@ -206,85 +209,87 @@ class Not(BooleanOperation, UnaryOperation):
 
 
 class Add(ArithmeticOperation, BinaryOperation):
-    op = '+'
+    op = "+"
     reducer = operator.add
 
 
 class Sub(ArithmeticOperation, BinaryOperation):
-    op = '-'
+    op = "-"
     reducer = operator.sub
 
 
 class Mul(ArithmeticOperation, BinaryOperation):
-    op = '*'
+    op = "*"
     reducer = operator.mul
 
 
 class TrueDiv(ArithmeticOperation, BinaryOperation):
-    op = '/'
+    op = "/"
     reducer = operator.truediv
 
 
 class FloorDiv(ArithmeticOperation, BinaryOperation):
-    op = '//'
+    op = "//"
     reducer = operator.floordiv
 
 
 class Pow(ArithmeticOperation, BinaryOperation):
-    op = '**'
+    op = "**"
     reducer = operator.pow
 
 
 class Mod(ArithmeticOperation, BinaryOperation):
-    op = '%'
+    op = "%"
     reducer = operator.mod
 
 
 class Neg(ArithmeticOperation, ArithmeticOperable, UnaryOperation):
-    op = '-'
+    op = "-"
     reducer = operator.neg
 
     def __neg__(self):
         return self.operand
 
 
-class A(Accessible):
-    __slots__ = ('arguments', 'parent')
+class The(Accessible):
+    __slots__ = ("arguments", "parent")
 
     def __init__(self, arguments, parent=None):
         self.arguments = arguments
         self.parent = parent
 
     def __repr__(self):
-        return 'A({!r})'.format(self.arguments)
+        return "The({!r})".format(self.arguments)
 
 
-class GetAttr(A):
+class GetAttr(The):
     def __repr__(self):
-        return '{!r}.{}'.format(self.parent, self.arguments)
+        return "{!r}.{}".format(self.parent, self.arguments)
 
 
-class Call(A):
+class Call(The):
     def __repr__(self):
         args, kwargs = self.arguments
-        arguments = [repr(arg) for arg in args] + ['{}={!r}'.format(kw, repr(arg)) for kw, arg in kwargs.items()]
-        arguments = ', '.join(arguments)
-        return '{!r}({})'.format(self.parent, arguments)
+        arguments = [repr(arg) for arg in args] + [
+            "{}={!r}".format(kw, repr(arg)) for kw, arg in kwargs.items()
+        ]
+        arguments = ", ".join(arguments)
+        return "{!r}({})".format(self.parent, arguments)
 
 
-class GetItem(A):
+class GetItem(The):
     def __repr__(self):
-        return '{!r}[{}]'.format(self.parent, self.arguments)
+        return "{!r}[{}]".format(self.parent, self.arguments)
 
 
-class L(A):
-    __slots__ = ('value',)
+class L(The):
+    __slots__ = ("value",)
 
     def __init__(self, value):
         self.value = value
 
     def __repr__(self):
-        return 'L({!r})'.format(self.value)
+        return "L({!r})".format(self.value)
 
 
 class For(LazyObject):
@@ -296,9 +301,9 @@ class For(LazyObject):
         return For(self.value, function=function)
 
     def __repr__(self):
-        s = self.__class__.__name__ + '(' + repr(self.value) + ')'
+        s = self.__class__.__name__ + "(" + repr(self.value) + ")"
         if self.function is not None:
-            s += '.do(' + repr(self.function) + ')'
+            s += ".do(" + repr(self.function) + ")"
         return s
 
 
@@ -308,7 +313,14 @@ class Function(Callable):
         self.body = body
 
     def __repr__(self):
-        s = self.__class__.__name__ + '(' + repr(self.variable_name) + ', ' + repr(self.body) + ')'
+        s = (
+            self.__class__.__name__
+            + "("
+            + repr(self.variable_name)
+            + ", "
+            + repr(self.body)
+            + ")"
+        )
         return s
 
 
@@ -319,16 +331,19 @@ class If(LazyObject):
         self.otherwise_then = otherwise_then
 
     def otherwise(self, then):
-        return If(
-            self.value,
-            self.then,
-            otherwise_then=then,
-        )
+        return If(self.value, self.then, otherwise_then=then,)
 
     def __repr__(self):
-        s = self.__class__.__name__ + '(' + repr(self.value) + ', ' + repr(self.then) + ')'
+        s = (
+            self.__class__.__name__
+            + "("
+            + repr(self.value)
+            + ", "
+            + repr(self.then)
+            + ")"
+        )
         if self.otherwise_then is not None:
-            s += '.(' + repr(self.otherwise) + ')'
+            s += ".(" + repr(self.otherwise) + ")"
         return s
 
 
@@ -338,4 +353,12 @@ class Assign(LazyObject):
         self.value = value
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' + repr(self.name) + ', ' + repr(self.value) + ')'
+        return (
+            self.__class__.__name__
+            + "("
+            + repr(self.name)
+            + ", "
+            + repr(self.value)
+            + ")"
+        )
+
